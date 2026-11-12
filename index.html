@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f5ee">
+  <meta name="description" content="2019—2024 年全国城市 PM2.5 年均浓度变化，一篇可交互的数据新闻。">
+  <title>六年间，我们呼吸的空气发生了什么变化？</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f5f5ee;
+      --surface: #fffef9;
+      --ink: #1b2822;
+      --muted: #4e6157;
+      --accent: #14644d;
+      --tint: #e5eee5;
+      --border: #ced7cd;
+      --grid: #dbe2d9;
+      --sans: "Instrument Sans", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      --serif: "Songti SC", "Noto Serif CJK SC", "SimSun", Georgia, serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font: 1rem/1.7 var(--sans); }
+    h1, h2, h3, p, figure, dl, dd { margin: 0; }
+    a { color: var(--accent); text-underline-offset: .2em; }
+    a:hover { text-decoration-thickness: 2px; }
+    a:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+    .shell { width: min(69rem, calc(100% - 3rem)); margin-inline: auto; }
+    .number { font-variant-numeric: lining-nums tabular-nums; }
+    .small { color: var(--muted); font-size: .8125rem; }
+    .kicker { color: var(--accent); font-size: .8125rem; font-weight: 700; letter-spacing: .12em; }
+
+    .masthead {
+      min-height: 4.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: .75rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      padding-block: .75rem;
+    }
+    .brand { display: flex; align-items: center; gap: .65rem; color: var(--accent); font-weight: 700; }
+    .brand svg { flex: none; }
+    .course { text-align: right; }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(11rem, 14rem);
+      align-items: end;
+      column-gap: clamp(2rem, 5vw, 5rem);
+      row-gap: 1.25rem;
+      padding-block: clamp(2.25rem, 5.4vw, 4.5rem) clamp(2rem, 4vw, 3.25rem);
+    }
+    .hero .kicker { margin-bottom: 1rem; }
+    h1 {
+      font-family: var(--serif);
+      font-size: clamp(2.5rem, 6.1vw, 4.625rem);
+      font-weight: 800;
+      line-height: 1.14;
+      letter-spacing: -.045em;
+    }
+    .title-line { display: block; }
+    .subtitle {
+      margin-top: 1rem;
+      color: var(--accent);
+      font-size: clamp(.94rem, 2vw, 1.25rem);
+      font-weight: 650;
+    }
+    .lead { grid-column: 1; max-width: 44rem; font-size: clamp(.9375rem, 1.5vw, 1.0625rem); line-height: 1.95; }
+    .snapshot {
+      grid-column: 2;
+      grid-row: 1 / 3;
+      align-self: end;
+      border-top: 2px solid var(--accent);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 0 1.125rem;
+    }
+    .snapshot-label { color: var(--muted); font-size: .8125rem; font-weight: 600; }
+    .snapshot strong {
+      display: block;
+      margin: .35rem 0 .5rem;
+      color: var(--accent);
+      font: 700 clamp(2.5rem, 4.6vw, 4.25rem)/1.08 "Instrument Sans", var(--sans);
+      letter-spacing: -.06em;
+    }
+    .snapshot-detail { color: var(--muted); font-size: .875rem; }
+
+    .figure {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--accent);
+      border-radius: .875rem;
+      padding: clamp(1.25rem, 3.8vw, 2.75rem);
+    }
+    .figure-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: .65rem 1.5rem;
+      margin-bottom: .6rem;
+    }
+    h2 {
+      font: 750 clamp(1.375rem, 3vw, 2rem)/1.35 var(--serif);
+      letter-spacing: -.02em;
+    }
+    .chart-hint { display: flex; gap: .5rem; align-items: baseline; }
+    .chart-hint::before {
+      content: "";
+      flex: none;
+      width: .5rem;
+      height: .5rem;
+      align-self: center;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+    .chart-definition { margin-bottom: 1.125rem; color: var(--muted); font-size: .875rem; }
+    .axis-unit { font-size: .875rem; font-weight: 600; color: var(--muted); }
+    .plot { position: relative; height: clamp(15rem, 29vw, 21rem); }
+    .plot-svg, .points { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .points { pointer-events: none; }
+    .plot-svg text { font: .8125rem var(--sans); fill: var(--muted); }
+    .plot-svg .point-value { font-weight: 700; fill: var(--accent); }
+    .grid { stroke: var(--grid); }
+    .axis { stroke: #96a79b; }
+    .area { fill: var(--tint); fill-opacity: .72; }
+    .series { fill: none; stroke: var(--accent); stroke-width: 2.75; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* 原生按钮提供 44px 触控区域，实际点标记位于按钮中心。 */
+    .point {
+      position: absolute;
+      z-index: 1;
+      width: 44px;
+      height: 44px;
+      transform: translate(-50%, -50%);
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      cursor: pointer;
+      pointer-events: auto;
+      touch-action: manipulation;
+    }
+    .point::after {
+      content: "";
+      position: absolute;
+      inset: 50% auto auto 50%;
+      width: 11px;
+      height: 11px;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      background: var(--surface);
+      border: 2.5px solid var(--accent);
+    }
+    .point.is-active::after {
+      background: var(--accent);
+      border: 2px solid var(--surface);
+      box-shadow: 0 0 0 2px var(--accent), 0 0 0 6px #14644d26;
+    }
+    .point:focus-visible { outline: 2px dashed var(--accent); outline-offset: -7px; }
+    .tooltip {
+      position: absolute;
+      z-index: 2;
+      width: max-content;
+      max-width: calc(100% - 16px);
+      padding: .55rem .8rem;
+      border-radius: .5rem;
+      color: #fff;
+      background: #164e3e;
+      pointer-events: none;
+      overflow-wrap: anywhere;
+      line-height: 1.4;
+      box-shadow: 0 4px 12px #1b28222b;
+    }
+    .tooltip-year, .tooltip-change { display: block; font-size: .75rem; color: #e1f0e6; }
+    .tooltip-value { display: block; font-weight: 700; margin-block: .125rem; }
+    figcaption { padding-top: .85rem; border-top: 1px solid var(--grid); }
+    .empty { position: absolute; inset: 2rem 0 auto; color: var(--muted); }
+
+    .raw-data {
+      margin-top: .75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: .75rem;
+    }
+    .raw-data summary {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      list-style: none;
+      padding: .7rem clamp(.875rem, 3.8vw, 2.75rem);
+      color: var(--accent);
+      font-size: .9375rem;
+      font-weight: 700;
+      cursor: pointer;
+      border-radius: .75rem;
+    }
+    .raw-data summary::-webkit-details-marker { display: none; }
+    .raw-data summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; }
+    .raw-data summary:hover { background: var(--tint); }
+    .disclosure-icon {
+      position: relative;
+      flex: none;
+      width: .75rem;
+      height: .75rem;
+    }
+    .disclosure-icon::before, .disclosure-icon::after {
+      content: "";
+      position: absolute;
+      inset: 50% 0 auto;
+      height: 2px;
+      background: currentColor;
+      transform: translateY(-50%);
+    }
+    .disclosure-icon::after { transform: translateY(-50%) rotate(90deg); }
+    .raw-data[open] .disclosure-icon::after { display: none; }
+    .raw-data-body { padding: 0 clamp(.875rem, 3.8vw, 2.75rem) 1rem; }
+    .raw-data table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+    .raw-data caption { padding-block: .35rem .65rem; text-align: left; }
+    .raw-data th, .raw-data td { padding: .45rem .4rem; border-bottom: 1px solid var(--grid); }
+    .raw-data th:first-child { padding-left: 0; text-align: left; }
+    .raw-data th:not(:first-child), .raw-data td { text-align: right; }
+    .raw-data thead { color: var(--muted); }
+    .raw-data td { font-variant-numeric: tabular-nums; }
+    .raw-note { margin-top: .75rem; }
+
+    .analysis { margin-block: clamp(2.5rem, 5vw, 4.25rem) clamp(2rem, 4vw, 3.5rem); }
+    .analysis h2 { margin-bottom: 1.375rem; }
+    .reading-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem; }
+    .reading { border-top: 1px solid var(--border); padding-top: .875rem; }
+    .reading h3 { margin-block: .35rem .35rem; font-size: 1.125rem; line-height: 1.4; }
+    .reading p:last-child { color: var(--muted); font-size: .9375rem; }
+    .reading b { color: var(--accent); }
+    .method {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      gap: .25rem 1rem;
+      margin-top: 1.75rem;
+      border-left: 3px solid var(--accent);
+      background: var(--tint);
+      border-radius: 0 .375rem .375rem 0;
+      padding: .8rem 1rem;
+      font-size: .875rem;
+    }
+    .method h3 { font-size: inherit; }
+    .method p { color: var(--muted); }
+
+    .source { padding-block: 1.5rem 2.75rem; border-top: 1px solid var(--border); }
+    .source h2 { margin-bottom: 1rem; font-size: 1.25rem; }
+    .source dl { display: grid; grid-template-columns: 1.4fr 1fr; gap: .65rem 1.5rem; font-size: .875rem; }
+    .source dl > div { display: flex; gap: .5rem; flex-wrap: wrap; }
+    .source dt { color: var(--muted); }
+    .source dd { font-weight: 600; }
+
+    @media (max-width: 59rem) and (min-width: 46.001rem) {
+      h1 { font-size: clamp(2.5rem, 5.8vw, 3.6rem); }
+      .hero { column-gap: 1.5rem; grid-template-columns: minmax(0, 1fr) 10rem; }
+    }
+    @media (max-width: 46rem) {
+      .shell { width: calc(100% - 2rem); }
+      .hero { grid-template-columns: 1fr; row-gap: 1rem; }
+      h1 { font-size: clamp(1.875rem, 8.6vw, 3.75rem); }
+      .snapshot { grid-column: 1; grid-row: auto; padding: .7rem 0; }
+      .snapshot strong { font-size: 2.5rem; }
+      .reading-grid { grid-template-columns: 1fr; gap: 1rem; }
+      .source dl { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 28rem) {
+      .masthead { min-height: 3.5rem; }
+      .brand { font-size: .875rem; gap: .4rem; }
+      .course { font-size: .6875rem; }
+      .figure { padding-inline: .75rem; }
+      .figure-header h2 { font-family: var(--sans); font-size: 1.125rem; }
+      .plot-svg text { font-size: .75rem; }
+      .method { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 21.25rem) {
+      .shell { width: calc(100% - 1.5rem); }
+    }
+  </style>
+</head>
+<body>
+  <header class="masthead shell">
+    <p class="brand">
+      <svg width="25" height="25" viewBox="0 0 25 25" aria-hidden="true">
+        <rect x="1" y="1" width="23" height="23" rx="7" fill="currentColor"/>
+        <path d="m5.5 9 5 5 3.5-2.5 5.5 5" stroke="#fffef9" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="19.5" cy="16.5" r="1.4" fill="#fffef9"/>
+      </svg>
+      数据新闻
+    </p>
+    <p class="course small">《AIGC开发与应用》任务 2</p>
+  </header>
+
+  <main class="shell">
+    <section class="hero" aria-labelledby="headline">
+      <div>
+        <p class="kicker">环境观察 / 空气质量</p>
+        <h1 id="headline"><span class="title-line">六年间，我们呼吸的</span><span class="title-line">空气发生了什么变化？</span></h1>
+        <p class="subtitle">2019—2024 年全国城市 PM2.5 年均浓度变化</p>
+      </div>
+      <p class="lead" id="lead"></p>
+      <aside class="snapshot" aria-labelledby="snapshot-label" hidden>
+        <p class="snapshot-label" id="snapshot-label">2024 年较 2019 年</p>
+        <strong class="number" id="snapshot-percent"></strong>
+        <p class="snapshot-detail" id="snapshot-detail"></p>
+      </aside>
+    </section>
+
+    <figure class="figure" aria-labelledby="chart-title" aria-describedby="chart-definition chart-hint chart-caption">
+      <header class="figure-header">
+        <h2 id="chart-title">全国城市 PM2.5 年均浓度</h2>
+        <p class="small chart-hint" id="chart-hint">悬停、轻点或按 Tab 键聚焦数据点</p>
+      </header>
+      <p class="chart-definition" id="chart-definition">PM2.5 是空气中粒径不超过 2.5 微米的细颗粒物，图中的浓度表示每立方米空气含有多少微克这类颗粒物。</p>
+      <p class="axis-unit">浓度（μg/m³）</p>
+      <div class="plot" id="plot">
+        <svg class="plot-svg" id="chart-svg" aria-hidden="true"></svg>
+        <div class="points" id="points" role="group" aria-label="六个年度数据点，按年份排列"></div>
+        <div class="tooltip" id="tooltip" aria-hidden="true" hidden>
+          <span class="tooltip-year" id="tooltip-year"></span>
+          <span class="tooltip-value number" id="tooltip-value"></span>
+          <span class="tooltip-change" id="tooltip-change"></span>
+        </div>
+        <noscript><p class="empty">请启用 JavaScript 查看交互图表和数据解读。</p></noscript>
+      </div>
+      <figcaption class="small" id="chart-caption">横轴为年份，纵轴从 0 起。图中采用各年公报当年公布值，变幅据此计算。</figcaption>
+    </figure>
+
+    <details class="raw-data" id="raw-data" hidden>
+      <summary>查看原始数据 <span class="disclosure-icon" aria-hidden="true"></span></summary>
+      <div class="raw-data-body">
+        <table>
+          <caption class="small">各年公报公布值。点击年份可查阅对应公报。</caption>
+          <thead>
+            <tr>
+              <th scope="col">年份</th>
+              <th scope="col">年均浓度（μg/m³）</th>
+              <th scope="col">城市数</th>
+            </tr>
+          </thead>
+          <tbody id="raw-data-rows"></tbody>
+        </table>
+        <p class="small raw-note"><a href="https://www.mee.gov.cn/hjzl/sthjzk/zghjzkgb/202506/P020250604527010717462.pdf">2024 年公报</a>图 1-6 将 2019—2023 年的浓度列到一位小数，依次为 36.2、32.6、29.9、29.1、30.1 μg/m³，四舍五入为整数后与表中各年公布值一致。用图 1-6 的 30.1 和 29.3 计算，2024 年同比下降约 2.7%。用两年各自公布的 30 和 29.3 计算，下降 0.7 μg/m³，约 2.3%。</p>
+      </div>
+    </details>
+
+    <section class="analysis" aria-labelledby="analysis-title">
+      <h2 id="analysis-title">数据解读</h2>
+      <div class="reading-grid" id="readings"></div>
+      <aside class="method">
+        <h3>统计口径与解读范围</h3>
+        <p>统计对象为全国地级及以上城市。2019—2020 年纳入 337 个城市，2021—2024 年纳入 339 个。2021 年公报开始按“十四五”监测点位评价。这组汇总值用于观察总体趋势，判断单个城市的变化或评估具体政策的作用还需相应证据。</p>
+      </aside>
+    </section>
+
+    <footer class="source" aria-labelledby="source-title">
+      <h2 id="source-title">数据来源与更新时间</h2>
+      <dl>
+        <div><dt>数据来源</dt><dd><a href="https://www.mee.gov.cn/hjzl/sthjzk/zghjzkgb/">生态环境部历年中国生态环境状况公报</a></dd></div>
+        <div><dt>数据文件</dt><dd><a id="csv-download" href="./pm25.csv" download="pm25.csv">pm25.csv</a></dd></div>
+        <div><dt>数据覆盖年份</dt><dd>2019—2024 年</dd></div>
+        <div><dt>页面更新时间</dt><dd><time datetime="2026-11-11">2026 年 11 月 11 日</time></dd></div>
+      </dl>
+    </footer>
+  </main>
+
+  <!-- 双击打开网页时使用这份经核对的 CSV 副本。修改 pm25.csv 后请同步更新。 -->
+  <script type="text/plain" id="offline-csv">
+year,pm25
+2019,36
+2020,33
+2021,30
+2022,29
+2023,30
+2024,29.3
+  </script>
+  <script>
+    "use strict";
+
+    const UNIT = "μg/m³";
+    const FIRST_YEAR = 2019;
+    const LAST_YEAR = 2024;
+    const REPORT_ARCHIVE = "https://www.mee.gov.cn/hjzl/sthjzk/zghjzkgb/";
+    const REPORTS = {
+      2019: { cities: 337, path: "202006/P020200602509464172096.pdf" },
+      2020: { cities: 337, path: "202105/P020210526572756184785.pdf" },
+      2021: { cities: 339, path: "202205/P020220608338202870777.pdf" },
+      2022: { cities: 339, path: "202305/P020230529570623593284.pdf" },
+      2023: { cities: 339, path: "202406/P020240604551536165161.pdf" },
+      2024: { cities: 339, path: "202506/P020250604527010717462.pdf" }
+    };
+    const byId = (id) => document.getElementById(id);
+    const fmt = (number) => String(Number(number.toFixed(2)));
+    const direction = (delta) => delta < 0 ? "下降" : delta > 0 ? "上升" : "持平";
+    const describeChange = (delta) => delta === 0 ? "持平" : direction(delta) + " " + fmt(Math.abs(delta)) + " " + UNIT;
+
+    function parseCSV(text) {
+      const [header, ...lines] = text.replace(/^\uFEFF/, "").trim().split(/\r?\n/);
+      if (header.trim() !== "year,pm25" || lines.length !== LAST_YEAR - FIRST_YEAR + 1) {
+        throw new Error("CSV 表头或年份范围不符");
+      }
+      return lines.map((line, index) => {
+        const fields = line.split(",").map((field) => field.trim());
+        const [yearText, valueText] = fields;
+        const year = Number(yearText);
+        const value = Number(valueText);
+        if (fields.length !== 2 || year !== FIRST_YEAR + index ||
+            !/^\d+(?:\.\d+)?$/.test(valueText) || !Number.isFinite(value)) {
+          throw new Error("CSV 中有无效年份或浓度");
+        }
+        return { year, value, valueText };
+      });
+    }
+
+    async function loadData() {
+      // 大多数浏览器限制 file:// 页面读取相邻文件。通过 HTTP 打开时优先读取原始 CSV。
+      if (location.protocol === "http:" || location.protocol === "https:") {
+        try {
+          const response = await fetch("./pm25.csv");
+          if (!response.ok) throw new Error("HTTP " + response.status);
+          return parseCSV(await response.text());
+        } catch (error) {
+          console.warn("未能读取 pm25.csv，已使用网页内置副本。", error);
+        }
+      }
+      return parseCSV(byId("offline-csv").textContent);
+    }
+
+    function renderStory(data) {
+      const [first, , , year2022, year2023, last] = data;
+      const net = last.value - first.value;
+      const percent = first.value ? net / first.value * 100 : null;
+      const change2023 = year2023.value - year2022.value;
+      const change2024 = last.value - year2023.value;
+      const comparison = net < 0 ? "降至" : net > 0 ? "升至" : "维持在";
+      const percentageNote = percent === null || net === 0 ? "" : "，约" + direction(net) + " " + Math.abs(percent).toFixed(1) + "%";
+      const openingTrend = data.slice(1, 4).every(({ value }, index) => value < data[index].value) ? "前四年逐年下降，" : "";
+      const movement2023 = change2023 > 0 ? "小幅回升至 " + year2023.valueText + " " + UNIT : "较上一年" + direction(change2023);
+      const movement2024 = change2024 < 0 ? "再次回落" : "较上一年" + direction(change2024);
+
+      byId("lead").textContent =
+        first.year + " 至 " + last.year + " 年，全国城市 PM2.5 年均浓度" +
+        (net === 0 ? "" : "从 " + first.valueText + " ") + comparison + " " + last.valueText + " " + UNIT + percentageNote +
+        "。" + openingTrend + "2023 年" + movement2023 + "，2024 年" + movement2024 +
+        "。各年的监测城市范围和统计口径可能不同。";
+
+      if (percent !== null) {
+        const sign = net < 0 ? "−" : net > 0 ? "+" : "";
+        byId("snapshot-percent").textContent = sign + Math.abs(percent).toFixed(1) + "%";
+        byId("snapshot-detail").textContent = "浓度" + describeChange(net);
+        document.querySelector(".snapshot").hidden = false;
+      }
+
+      const readings = [
+        ["2019 → 2024", "六年总体" + direction(net),
+          "年均浓度从 " + first.valueText + " 变为 " + last.valueText + " " + UNIT + "，",
+          describeChange(net) + percentageNote + "。"],
+        ["2022 → 2023", "2023 年" + (change2023 > 0 ? "小幅回升" : direction(change2023)),
+          "年均浓度从 " + year2022.valueText + " 变为 " + year2023.valueText + " " + UNIT + "，",
+          "较上一年" + describeChange(change2023) + "。"],
+        ["2023 → 2024", "2024 年" + (change2024 < 0 ? "再次下降" : direction(change2024)),
+          "年均浓度为 " + last.valueText + " " + UNIT + "，",
+          "较上一年" + describeChange(change2024) + "。"]
+      ];
+      // 正文和图表共用同一份数据，避免数值和文字分开维护。
+      const container = byId("readings");
+      for (const [period, title, description, emphasis] of readings) {
+        const article = document.createElement("article");
+        article.className = "reading";
+        const label = document.createElement("p");
+        label.className = "kicker number";
+        label.textContent = period;
+        const heading = document.createElement("h3");
+        heading.textContent = title;
+        const copy = document.createElement("p");
+        const bold = document.createElement("b");
+        bold.textContent = emphasis;
+        copy.append(description, bold);
+        article.append(label, heading, copy);
+        container.append(article);
+      }
+    }
+
+    function renderRawData(data) {
+      const rows = byId("raw-data-rows");
+      for (const { year, valueText } of data) {
+        const report = REPORTS[year];
+        const link = document.createElement("a");
+        link.href = REPORT_ARCHIVE + report.path;
+        link.textContent = year + " 年";
+        link.setAttribute("aria-label", year + " 年公报（PDF）");
+
+        const heading = document.createElement("th");
+        heading.scope = "row";
+        heading.append(link);
+        const value = document.createElement("td");
+        value.textContent = valueText;
+        const cities = document.createElement("td");
+        cities.textContent = report.cities;
+        const row = document.createElement("tr");
+        row.append(heading, value, cities);
+        rows.append(row);
+      }
+      byId("raw-data").hidden = false;
+    }
+
+    function svgElement(name, attributes, content) {
+      const element = document.createElementNS("http://www.w3.org/2000/svg", name);
+      for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, value);
+      if (content !== undefined) element.textContent = content;
+      return element;
+    }
+
+    function renderChart(data) {
+      const plot = byId("plot");
+      const svg = byId("chart-svg");
+      const points = byId("points");
+      const tooltip = byId("tooltip");
+      const narrowPlotWidth = 450;
+      const yearLabelSpace = 35;
+      const axisLeft = (width) => width < narrowPlotWidth ? 32 : 42;
+      const yearChange = (index) => index ? "较上年" + describeChange(data[index].value - data[index - 1].value) : "序列起点";
+      let hovered = null;
+      let focused = null;
+      let pinned = null;
+      let positions = [];
+
+      const buttons = data.map(({ year, valueText }, index) => {
+        const point = document.createElement("button");
+        point.type = "button";
+        point.className = "point";
+        point.setAttribute("aria-label", year + " 年，" + valueText + " 微克每立方米。" + yearChange(index));
+        point.setAttribute("aria-pressed", "false");
+        point.addEventListener("pointerenter", (event) => {
+          if (event.pointerType === "mouse" || event.pointerType === "pen") {
+            hovered = index;
+            updateTooltip();
+          }
+        });
+        point.addEventListener("pointerleave", () => {
+          if (hovered === index) hovered = null;
+          updateTooltip();
+        });
+        point.addEventListener("focus", () => {
+          if (point.matches(":focus-visible")) {
+            hovered = null;
+            focused = index;
+          }
+          updateTooltip();
+        });
+        point.addEventListener("blur", () => {
+          if (focused === index) focused = null;
+          updateTooltip();
+        });
+        point.addEventListener("click", () => {
+          pinned = pinned === index ? null : index;
+          updateTooltip();
+        });
+        points.append(point);
+        return point;
+      });
+
+      function updateTooltip() {
+        const active = hovered ?? focused ?? pinned;
+        buttons.forEach((point, index) => {
+          point.classList.toggle("is-active", index === active);
+          point.setAttribute("aria-pressed", String(index === pinned));
+        });
+        tooltip.hidden = active === null || !positions[active];
+        if (tooltip.hidden) return;
+
+        const { year, valueText } = data[active];
+        const { x, y } = positions[active];
+        byId("tooltip-year").textContent = year + " 年";
+        byId("tooltip-value").textContent = valueText + " " + UNIT;
+        byId("tooltip-change").textContent = yearChange(active);
+        const inset = 8;
+        const gap = 26;
+        const width = plot.clientWidth;
+        const height = tooltip.offsetHeight;
+        const maxLeft = width - tooltip.offsetWidth - inset;
+        // 避开两轴刻度。窄屏优先放在整条折线下方，避免盖住相邻数据点。
+        const minLeft = Math.max(inset, Math.min(axisLeft(width) + inset, maxLeft));
+        const maxTop = plot.clientHeight - yearLabelSpace - height - inset;
+        const pointYs = width < narrowPlotWidth ? positions.map((point) => point.y) : [y];
+        const below = Math.max(...pointYs) + gap;
+        const above = Math.min(...pointYs) - gap - height;
+        const preferredTop = below > maxTop && above >= inset ? above : below;
+        const left = Math.max(minLeft, Math.min(x - tooltip.offsetWidth / 2, maxLeft));
+        const top = Math.max(inset, Math.min(preferredTop, maxTop));
+        tooltip.style.left = left + "px";
+        tooltip.style.top = top + "px";
+      }
+
+      function draw() {
+        const width = plot.clientWidth;
+        const height = plot.clientHeight;
+        if (!width || !height) return;
+        const left = axisLeft(width);
+        const right = width - (width < narrowPlotWidth ? 16 : 26);
+        const top = 20;
+        const bottom = height - yearLabelSpace;
+        const step = 10;
+        const ceiling = Math.max(40, Math.ceil(Math.max(...data.map(({ value }) => value)) / step) * step);
+        const yFor = (value) => bottom - value / ceiling * (bottom - top);
+        svg.setAttribute("viewBox", "0 0 " + width + " " + height);
+        const grid = document.createDocumentFragment();
+        for (let index = 0; index <= 4; index++) {
+          const tick = ceiling * index / 4;
+          const y = yFor(tick);
+          grid.append(
+            svgElement("line", { x1: left, y1: y, x2: right, y2: y, class: tick ? "grid" : "axis" }),
+            svgElement("text", { x: left - 11, y: y + 4, "text-anchor": "end" }, fmt(tick))
+          );
+        }
+        grid.append(svgElement("line", { x1: left, y1: top, x2: left, y2: bottom, class: "axis" }));
+        positions = data.map(({ value }, index) => ({
+          x: left + (right - left) * index / (data.length - 1),
+          y: yFor(value)
+        }));
+        const coordinates = positions.map(({ x, y }) => x + "," + y).join(" ");
+        const area = svgElement("polygon", {
+          points: left + "," + bottom + " " + coordinates + " " + right + "," + bottom,
+          class: "area"
+        });
+        const line = svgElement("polyline", { points: coordinates, class: "series" });
+        const labels = document.createDocumentFragment();
+        data.forEach(({ year, valueText }, index) => {
+          const { x, y } = positions[index];
+          labels.append(
+            svgElement("text", { x, y: bottom + 23, "text-anchor": "middle" }, year),
+            svgElement("text", { x, y: y - 15, "text-anchor": "middle", class: "point-value" }, valueText)
+          );
+          buttons[index].style.left = x + "px";
+          buttons[index].style.top = y + "px";
+        });
+        svg.replaceChildren(area, grid, line, labels);
+        updateTooltip();
+      }
+
+      document.addEventListener("pointerdown", (event) => {
+        if (!points.contains(event.target) && pinned !== null) {
+          pinned = null;
+          updateTooltip();
+        }
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !tooltip.hidden) {
+          hovered = focused = pinned = null;
+          updateTooltip();
+        }
+      });
+      draw();
+      new ResizeObserver(draw).observe(plot);
+    }
+
+    loadData().then((data) => {
+      renderStory(data);
+      renderChart(data);
+      renderRawData(data);
+      const csv = ["year,pm25", ...data.map(({ year, valueText }) => year + "," + valueText)].join("\n");
+      byId("csv-download").href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    }).catch((error) => {
+      const message = document.createElement("p");
+      message.className = "empty";
+      message.textContent = "无法显示图表，请检查数据文件后刷新页面。";
+      byId("plot").append(message);
+      console.error(error);
+    });
+  </script>
+</body>
+</html>
